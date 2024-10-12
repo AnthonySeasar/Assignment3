@@ -81,5 +81,18 @@ def q1(d):
 
 
 if __name__ == '__main__':
+    d = 10
+    primes = 0
+    primeNum = []
 
+    while primes < 2:
+        k = random.choice(range(1, 10001))
+        n = primeNumSelector(d)
+        prime = millerRabinAlgo(n, k)
+        if prime != "Composite":
+            primes += 1
+            primeNum.append(prime)
+        d += 1
+    n = primeNum[0] * primeNum[1]
+    print(lamDa(primeNum[1],primeNum[0]))
 
