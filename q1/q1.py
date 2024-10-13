@@ -1,4 +1,9 @@
+# Author : Zijie Zhang
+# StudentID: 32397216
+# Date: 13/10/2024
+
 import random
+import sys
 
 
 def primeNumSelector(d):
@@ -40,7 +45,7 @@ def millerRabinAlgo(n, k):
         t = t // 2
     while k > 0:
         k -= 1
-        a = random.choice(range(2, n - 1))
+        a = random.randint(2, n - 1)
         if modExponent(a, n - 1, n) != 1:
             return "Composite"
         for i in range(1, s + 1):
@@ -60,14 +65,25 @@ def gcd(m, n):
 
 def lamDa(p, q):
     lamDaNum = ((p - 1) * (q - 1)) // gcd(p - 1, q - 1)
-    e = random.choice(range(3, lamDaNum - 1))
+    e = random.randint(3, lamDaNum - 1)
     return e
+
+
+def write_public_file(nAnde, filename):
+    with open(filename, 'w') as file:
+        file.write(f"# modulus (n)\n{nAnde[0]}\n")
+        file.write(f"# exponent (e)\n{nAnde[1]}\n")
+
+
+def write_private_file(primes, filename):
+    with open(filename, 'w') as file:
+        file.write(f"# p\n{primes[0]}\n")
+        file.write(f"# q\n{primes[1]}\n")
 
 
 def q1(d):
     primes = 0
     primeNum = []
-
     while primes < 2:
         k = random.choice(range(1, 10001))
         n = primeNumSelector(d)
@@ -77,22 +93,16 @@ def q1(d):
             primeNum.append(prime)
         d += 1
     n = primeNum[0] * primeNum[1]
-    e = lamDa(primeNum[1],primeNum[0])
+    e = lamDa(primeNum[1], primeNum[0])
+    nAnde = [n, e]
+    write_private_file(primeNum, "output_q1_private.txt")
+    write_public_file(nAnde, "output_q1_public.txt")
 
 
 if __name__ == '__main__':
-    d = 10
-    primes = 0
-    primeNum = []
-
-    while primes < 2:
-        k = random.choice(range(1, 10001))
-        n = primeNumSelector(d)
-        prime = millerRabinAlgo(n, k)
-        if prime != "Composite":
-            primes += 1
-            primeNum.append(prime)
-        d += 1
-    n = primeNum[0] * primeNum[1]
-    print(lamDa(primeNum[1],primeNum[0]))
+    if len(sys.argv) > 1:
+        d = int(sys.argv[1])
+        q1(d)
+    else:
+        print("Please provide a value for d.")
 
