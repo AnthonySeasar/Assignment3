@@ -1,7 +1,14 @@
+# Author : Zijie Zhang
+# StudentID: 32397216
+# Date: 19/10/2024
+
 import numpy as np
 import numpy as geek
+import sys
 
 
+# A helper function to read input file
+# obtain the necessary attributes to generate the tableau
 def read_input_file(filename):
     with open(filename, 'r') as file:
         lines = file.readlines()
@@ -46,6 +53,7 @@ def simplexTableauForm(filename):
     # Fill in the RHS column
     tableau[:NConstraints, -2] = VectorRHS
 
+    # Array Xb store the current basic variables
     Xb = []
     j = NDecisionVar
     for i in range(NConstraints):
@@ -74,126 +82,107 @@ def cjZj(tableau, Cj, Cb, NConstraints):
     Cj_Zj = geek.subtract(Cj, Zj)
     # Fill the Cj-Zj to the Tableau
     tableau[-1, :-2] = Cj_Zj
-    # Find the index of maximum number
+    # Find the index of maximum number of last row which means the largest number of Cj-Zj
     maxColIndex = np.argmax(tableau[-1, :-2])
-    # print(maxColIndex)
-    # gain the  corresponding column for further calculation
+    # gain the corresponding column for further calculation
     corrColumn = tableau[:NConstraints, maxColIndex]
     RHS = tableau[:NConstraints, -2]
-
     # Initial theta array in order to store the results
     theta = np.zeros(NConstraints)
 
     for i in range(len(RHS)):
         #  Since we can't divide a zero
-        # print(corrColumn[i])
         if corrColumn[i] > 0:
             # print(RHS[i], " / ", corrColumn[i])
             theta[i] = RHS[i] / corrColumn[i]
-        #   theta[i] = RHS[i]/corrColumn[i]
         else:
             # The minimum number would be chosen later, thus we set those divide by 0 's column to inf.
             theta[i] = float('inf')
 
         # Fill the theta result to last column of tableau
         tableau[i, - 1] = theta[i]
-
-    # print(tableau)
-    # print(tableau[:NConstraints, -1])
+    # minimum of last column of tableau which means the smallest theta.
     minRowIndex = np.argmin(tableau[:NConstraints, -1])
     if tableau[-1, maxColIndex] <= 0:
         # need more content in there for end logic.
         return None, None
-
+    # return the minimum of theta and maximum of Cj-Zj.
     return int(minRowIndex), int(maxColIndex)
 
 
 # #  A Helper function to legally modify all number in corresponding column to be zero.
 def newTableauForm(tableau, Xb, Cb, Cj, minRowIndex, maxColIndex, NConstraints):
+    # Once we complete last tableau, it is about time to update it
+    # let row that contain the minimum of theta divide the cross point
     tableau[minRowIndex, :-1] = tableau[minRowIndex, :-1] / tableau[minRowIndex][maxColIndex]
+    # update the current basic variable
     Xb[minRowIndex] = maxColIndex
+    # update the Coefficients of current basic variable
     Cb[minRowIndex] = Cj[maxColIndex]
+    # Iterate through all constraints to make the chosen column contains the cross point to be zoe
     for i in range(NConstraints):
+        #  Do operation on all constraints row expect chosen row, the row of chosen column is already 0
         if i != minRowIndex and tableau[i][maxColIndex] != 0:
-            # magnification
+            # Calculate the magnification factor for row operations
             mag = tableau[i][maxColIndex] / 1
+            # Update the current row by subtracting the chosen row multiplied by the magnification factor
             tableau[i][:-1] -= tableau[minRowIndex][:-1] * mag
+            # Update the current row's chosen column to be 0
             tableau[i][maxColIndex] = 0
-
-    return tableau, Cb, Cj
+    # Return tableau, Coefficients array and Cj
+    # Well, Cj is part of calculation but will never be modified,I return it here for some referencing problems
+    return tableau, Cb
 
 
 def q2(filename):
+    # Read the input from the given file and initialize the tableau, Xb (basic variables),
+    # and Cb (coefficients of basic variables)
     NDecisionVar, NConstraints, Cj, MatrixLHS, VectorRHS = read_input_file(filename)
     tableau, Xb, Cb = simplexTableauForm(filename)
     found = False
 
+    # Start the iterative process to find the optimal solution
     while not found:
-        minRowIndex, maxColIndex = cjZj(tableau, Cj,Cb, NConstraints)
+        # Get the row and column index for the cross point
+        minRowIndex, maxColIndex = cjZj(tableau, Cj, Cb, NConstraints)
+        # If there is no more valid row and col index, it means
+        # the largest value in Cj-Zj row is 0 or negative
+        # set found to True to end the process
         if minRowIndex is None or maxColIndex is None:
-            found = True
             break
-        tableau, Cb, Cj = newTableauForm(tableau, Xb, Cb, Cj, minRowIndex, maxColIndex, NConstraints)
-
+        # Update the tableau, basic variables, and coefficients using the cross point
+        tableau, Cb = newTableauForm(tableau, Xb, Cb, Cj, minRowIndex, maxColIndex, NConstraints)
+    # After iteration, extract the RHS column from tableau and store it in b
     b = tableau[:NConstraints, -2]
     deciVars = []
+    # Iterate through each decision variable to determine its value in the solution
     for i in range(NDecisionVar):
         j = 0
         for k in Xb:
+            # If the current variable is a basic variable, append its value
             if i == k:
                 deciVars.append(float(b[j]))
             j += 1
-
+    # Calculate the final result using the coefficients of basic variables and RHS values
     result = np.sum(np.array(Cb) * np.array(b))
-    print(deciVars)
-    print(result)
 
+    return deciVars, str(result)
+
+
+def write_file(deciVars, result, filename="output_q2.txt"):
+    with open(filename, 'w') as file:
+        file.write("# Optimal_Values_of_Decision_Variables\n")
+        file.write(", ".join(map(str, deciVars)))
+        file.write("\n")
+        file.write("# Optimal_Value_of_Objective_Function\n")
+        file.write(result)
 
 if __name__ == '__main__':
-    q2('q2filetest.txt')
+    _, filename = sys.argv
+    deciVars, result = q2(filename)
+    write_file(deciVars, result)
 
-    # # N_Decision_Var, N_Constraints, Cj, Matrix_LHS, Vector_RHS = read_input_file('q2inputfile.txt')
-    # # q2filetest
-    # NDecisionVar, NConstraints, Cj, MatrixLHS, VectorRHS = read_input_file('q2bilibili.txt')
-    # tableau, Xb, Cb = simplexTableauForm('q2bilibili.txt')
-    #
-    # minRowIndex, maxColIndex = cjZj(tableau, Cj, NConstraints)
-    # # print(tableau)
-    # # print(Cb)
-    # # print(Xb)
-    # # print("\n\n\n\n")
-    # newTableau, Cb, Cj = newTableauForm(tableau, Xb, Cb, Cj, minRowIndex, maxColIndex, NConstraints)
-    # minRowIndex, maxColIndex = cjZj(newTableau, Cj, NConstraints)
-    # # print(newTableau)
-    # # print(Cb)
-    # # print(Xb)
-    # # print("\n\n\n\n")
-    #
-    # newTableau_2, Cb, Cj = newTableauForm(newTableau, Xb, Cb, Cj, minRowIndex, maxColIndex, NConstraints)
-    # minRowIndex, maxColIndex = cjZj(newTableau_2, Cj, NConstraints)
-    # # print(newTableau_2)
-    # # print(Cb)
-    # # print(Xb)
-    # # print("\n\n\n\n")
-    #
-    # newTableau_3, Cb, Cj = newTableauForm(newTableau_2, Xb, Cb, Cj, minRowIndex, maxColIndex, NConstraints)
-    # minRowIndex, maxColIndex = cjZj(newTableau_3, Cj, NConstraints)
-    #
-    # print(newTableau_3)
-    # # print(Cb)
-    # b = tableau[:NConstraints, -2]
-    # print(Xb)
-    # print(tableau[:NConstraints, -2])
-    # deciVars = []
-    # for i in range(NDecisionVar):
-    #     j = 0
-    #     for k in Xb:
-    #         if i == k:
-    #             deciVars.append(float(b[j]))
-    #         j += 1
-    #
-    # result = np.sum(np.array(Cb) * np.array(b))
-    # print(deciVars)
-    # print(result)
-    #
-    # print("\n\n\n\n")
+
+
+    # q2('q2filetest.txt')
+
